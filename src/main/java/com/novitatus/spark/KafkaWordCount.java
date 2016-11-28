@@ -3,15 +3,11 @@ package com.novitatus.spark;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
@@ -28,17 +24,13 @@ public class KafkaWordCount
 {
     private static final String SPACE = " ";
 
-    private KafkaWordCount()
-    {
-    }
-
     public static void main(String[] args) throws Exception
     {
         Map<String, Object> kafkaParams = new HashMap<>();
         kafkaParams.put("bootstrap.servers", "localhost:9092");
         kafkaParams.put("key.deserializer", StringDeserializer.class);
         kafkaParams.put("value.deserializer", StringDeserializer.class);
-        kafkaParams.put("group.id", "use_a_separate_group_id_for_each_stream");
+        kafkaParams.put("group.id", "grupo-2");
         kafkaParams.put("auto.offset.reset", "latest");
         kafkaParams.put("enable.auto.commit", false);
 
@@ -52,36 +44,16 @@ public class KafkaWordCount
 
         final JavaInputDStream<ConsumerRecord<String, String>> stream = KafkaUtils.createDirectStream(jsc, LocationStrategies.PreferConsistent(), subscribe);
 
-        JavaDStream<String> words = stream.flatMap(new FlatMapFunction<ConsumerRecord<String, String>, String>()
-        {
-            @Override
-            public Iterator<String> call(ConsumerRecord<String, String> t) throws Exception
-            {
-                return Arrays.asList(t.value().split(SPACE)).iterator();
-            }
-        });
+        JavaDStream<String> words = stream.flatMap(message -> Arrays.asList(message.value().split(SPACE)).iterator());
 
-        JavaPairDStream<String, Integer> wordsMap = words.mapToPair(new PairFunction<String, String, Integer>()
-        {
-            @Override
-            public Tuple2<String, Integer> call(String t) throws Exception
-            {
-                return new Tuple2<String, Integer>(t, 1);
-            }
-        });
+        JavaPairDStream<String, Integer> wordsMap = words.mapToPair(word -> new Tuple2<String, Integer>(word, 1));
 
-        JavaPairDStream<String, Integer> wordsCount = wordsMap.reduceByKey(new Function2<Integer, Integer, Integer>()
-        {
-            @Override
-            public Integer call(Integer v1, Integer v2) throws Exception
-            {
-                return v1 + v2;
-            }
-        });
+        JavaPairDStream<String, Integer> wordsCount = wordsMap.reduceByKey((v1, v2) -> v1 + v2);
 
-        wordsCount.print(100);
+        wordsCount.print();
 
         jsc.start();
         jsc.awaitTermination();
     }
+
 }
