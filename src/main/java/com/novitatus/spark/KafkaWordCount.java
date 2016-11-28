@@ -1,7 +1,6 @@
 package com.novitatus.spark;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,13 +33,11 @@ public class KafkaWordCount
         kafkaParams.put("auto.offset.reset", "latest");
         kafkaParams.put("enable.auto.commit", false);
 
-        Collection<String> topics = Arrays.asList("test");
-
         SparkConf sparkConf = new SparkConf().setAppName("KafkWordCount").setMaster("local");
 
         JavaStreamingContext jsc = new JavaStreamingContext(sparkConf, Durations.seconds(30));
 
-        ConsumerStrategy<String, String> subscribe = ConsumerStrategies.<String, String> Subscribe(topics, kafkaParams);
+        ConsumerStrategy<String, String> subscribe = ConsumerStrategies.<String, String> Subscribe(Arrays.asList("test"), kafkaParams);
 
         final JavaInputDStream<ConsumerRecord<String, String>> stream = KafkaUtils.createDirectStream(jsc, LocationStrategies.PreferConsistent(), subscribe);
 
