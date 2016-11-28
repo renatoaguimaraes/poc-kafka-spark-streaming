@@ -1,1 +1,1 @@
-# spark-streaming-kafka
+# poc-spark-streaming-kafka
